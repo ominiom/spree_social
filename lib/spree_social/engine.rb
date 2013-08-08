@@ -6,6 +6,22 @@ module SpreeSocial
     ["Google", "google_oauth2"]
   ]
 
+  def self.devise_path_prefix
+    @devise_path_prefix || 'user'
+  end
+
+  def self.devise_path_prefix=(value)
+    @devise_path_prefix = value
+  end
+
+  def self.omniauth_path_prefix
+    @omniauth_path_prefix
+  end
+
+  def self.omniauth_path_prefix=(value)
+    @omniauth_path_prefix = value
+  end
+
   class Engine < Rails::Engine
     engine_name 'spree_social'
 
@@ -16,8 +32,10 @@ module SpreeSocial
       g.test_framework :rspec
     end
 
-    initializer "spree_social.environment", :before => "spree.environment" do |app|
-      Spree::SocialConfig = Spree::SocialConfiguration.new
+    initializer "spree_social.environment", :before => "devise.omniauth" do |app|
+      SpreeSocial::OAUTH_PROVIDERS.each do |provider|
+        SpreeSocial.init_provider(provider[1])
+      end
     end
 
     def self.activate
@@ -45,7 +63,7 @@ module SpreeSocial
 
   def self.setup_key_for(provider, key, secret)
     Devise.setup do |config|
-      config.omniauth provider, key, secret, :setup => true
+      config.omniauth provider, key, secret, :setup => true, :path_prefix => SpreeSocial.omniauth_path_prefix
     end
   end
 end
