@@ -2,13 +2,10 @@ class Spree::OmniauthCallbacksController < Devise::OmniauthCallbacksController
   include Spree::Core::ControllerHelpers::Common
   include Spree::Core::ControllerHelpers::Order
   include Spree::Core::ControllerHelpers::Auth
-  include Spree::Core::ControllerHelpers::SSL
 
   def self.provides_callback_for(*providers)
     providers.each do |provider|
       class_eval %Q{
-        ssl_allowed :#{provider}
-
         def #{provider}
           if request.env["omniauth.error"].present?
             flash[:error] = t("devise.omniauth_callbacks.failure", :kind => auth_hash['provider'], :reason => t(:user_was_not_valid))
@@ -47,9 +44,13 @@ class Spree::OmniauthCallbacksController < Devise::OmniauthCallbacksController
     end
   end
 
-  SpreeSocial::OAUTH_PROVIDERS.each do |provider|
-    provides_callback_for provider[1].to_sym
+  actions = SpreeSocial::OAUTH_PROVIDERS.map do |provider|
+    provider[1].to_sym
+  end.each do |provider|
+    provides_callback_for(provider)
   end
+
+  ssl_allowed(*actions)
 
   def failure
     set_flash_message :alert, :failure, :kind => failed_strategy.name.to_s.humanize, :reason => failure_message
